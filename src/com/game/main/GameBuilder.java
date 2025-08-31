@@ -1,121 +1,194 @@
 package com.game.main;
 
-import java.util.Arrays;
 import java.util.InputMismatchException;
+import java.util.Random;
 import java.util.Scanner;
 
 public class GameBuilder {
     static String[] board;
     static String turn;
+    static int xWins = 0, oWins = 0, draws = 0;
+    static Scanner in = new Scanner(System.in);
+    static Random rand = new Random();
 
-    static String checkWinner(){
-        for(int a = 0; a < 8; a++){
-            String line = null;
+    // Check winner
+    static String checkWinner() {
+        int[][] winCombinations = {
+                {0, 1, 2}, {3, 4, 5}, {6, 7, 8},  // rows
+                {0, 3, 6}, {1, 4, 7}, {2, 5, 8},  // columns
+                {0, 4, 8}, {2, 4, 6}              // diagonals
+        };
 
-            switch (a){
-                case 0:
-                    line = board[0] + board[1] + board[2];
-                    break;
-                case 1:
-                    line = board[3] + board[4] + board[5];
-                    break;
-                case 2:
-                    line = board[6] + board[7] + board[8];
-                    break;
-                case 3:
-                    line = board[0] + board[3] + board[6];
-                    break;
-                case 4:
-                    line = board[1] + board[4] + board[7];
-                    break;
-                case 5:
-                    line = board[2] + board[5] + board[8];
-                    break;
-                case 6:
-                    line = board[0] + board[4] + board[8];
-                    break;
-                case 7:
-                    line = board[2] + board[4] + board[6];
-                    break;
-            }
-            // For X winner
-            if (line.equals("XXX")) {
-                return "X";
-            }
-
-            // For O winner
-            else if (line.equals("OOO")) {
-                return "O";
-            }
+        for (int[] combo : winCombinations) {
+            String line = board[combo[0]] + board[combo[1]] + board[combo[2]];
+            if (line.equals("XXX")) return "X";
+            if (line.equals("OOO")) return "O";
         }
 
-        for(int a = 0; a < 9; a++){
-            if(Arrays.asList(board).contains(String.valueOf(a+1))){
-                break;
-            }
-            else if(a == 8){
-                return "draw";
+        // Check draw
+        for (int i = 0; i < 9; i++) {
+            if (board[i].equals(String.valueOf(i + 1))) {
+                return null; // still moves left
             }
         }
-        System.out.println(turn + "'s turn; enter a slot number to place " + turn + " in:");
-        return null;
-
+        return "draw";
     }
-    // To print the board
+
+    // Print the board
     static void printBoard() {
-        System.out.println("|---|---|---|");
-        System.out.println("| " + board[0] + " | " + board[1] + " | " + board[2] + " |");
-        System.out.println("|-----------|");
-        System.out.println("| " + board[3] + " | " + board[4] + " | " + board[5] + " |");
-        System.out.println("|-----------|");
-        System.out.println("| " + board[6] + " | " + board[7] + " | " + board[8] + " |");
-        System.out.println("|---|---|---|");
+        System.out.println();
+        System.out.println(" " + board[0] + " | " + board[1] + " | " + board[2]);
+        System.out.println("---+---+---");
+        System.out.println(" " + board[3] + " | " + board[4] + " | " + board[5]);
+        System.out.println("---+---+---");
+        System.out.println(" " + board[6] + " | " + board[7] + " | " + board[8]);
+        System.out.println();
     }
 
-    public static void main(String[] args) {
-        Scanner in = new Scanner(System.in);
+    // Reset board
+    static void resetBoard() {
         board = new String[9];
-        turn = "X";
-        String winner = null;
-
         for (int a = 0; a < 9; a++) {
             board[a] = String.valueOf(a + 1);
         }
-        System.out.println("Welcome to 3X3 Tic Tac Toe.");
-        printBoard();
-        System.out.println("X will play first. Enter a slot number to place X in.");
-        while(winner == null){
-            int numInput;
-            try{
+        turn = "X";
+    }
+
+    // Player Move
+    static void playerMove() {
+        int numInput;
+        while (true) {
+            try {
                 numInput = in.nextInt();
-                //check Range
-                if(!(numInput > 0 && numInput <= 9)){
+                if (!(numInput > 0 && numInput <= 9)) {
                     System.out.println("Invalid input; Re-enter slot number:");
                     continue;
                 }
-                //check if slot is available
-                if(board[numInput-1].equals(String.valueOf(numInput))){
+                if (board[numInput - 1].equals(String.valueOf(numInput))) {
                     board[numInput - 1] = turn;
-
-                    //Toggle turn
-                    turn = turn.equals("X") ? "0" : "X";
-                    printBoard();
-                    winner = checkWinner();
-                }else {
+                    break;
+                } else {
                     System.out.println("Slot already taken; Re-enter slot number:");
                 }
-
-            }catch (InputMismatchException e){
+            } catch (InputMismatchException e) {
                 System.out.println("Invalid input; re-enter slot number:");
-                in.nextLine(); // Consume invalid input to prevent infinite loop
+                in.nextLine();
+            }
+        }
+    }
+
+    // Computer Move (Random AI)
+    // Computer Move (Smart AI: tries to win or block)
+    static void computerMove() {
+        // Winning combinations
+        int[][] winCombinations = {
+                {0, 1, 2}, {3, 4, 5}, {6, 7, 8},
+                {0, 3, 6}, {1, 4, 7}, {2, 5, 8},
+                {0, 4, 8}, {2, 4, 6}
+        };
+
+        // 1. Try to win
+        for (int[] combo : winCombinations) {
+            String line = board[combo[0]] + board[combo[1]] + board[combo[2]];
+            if (line.chars().filter(ch -> ch == 'O').count() == 2) {
+                for (int index : combo) {
+                    if (board[index].equals(String.valueOf(index + 1))) {
+                        board[index] = "O";
+                        System.out.println("Computer chose slot: " + (index + 1) + " (Winning Move)");
+                        return;
+                    }
+                }
             }
         }
 
-        // Final Result
-        if(winner.equalsIgnoreCase("draw")){
-            System.out.println("It's a draw! Thanks for playing.");
-        }else{
-            System.out.println("Congratulations! "+winner+ "'s have won! Thanks for playing.");
+        // 2. Block opponent's winning move
+        for (int[] combo : winCombinations) {
+            String line = board[combo[0]] + board[combo[1]] + board[combo[2]];
+            if (line.chars().filter(ch -> ch == 'X').count() == 2) {
+                for (int index : combo) {
+                    if (board[index].equals(String.valueOf(index + 1))) {
+                        board[index] = "O";
+                        System.out.println("Computer chose slot: " + (index + 1) + " (Blocking Move)");
+                        return;
+                    }
+                }
+            }
+        }
+
+        // 3. Otherwise take center if free
+        if (board[4].equals("5")) {
+            board[4] = "O";
+            System.out.println("Computer chose slot: 5 (Center)");
+            return;
+        }
+
+        // 4. Otherwise choose random
+        int move;
+        while (true) {
+            move = rand.nextInt(9);
+            if (board[move].equals(String.valueOf(move + 1))) {
+                board[move] = "O";
+                System.out.println("Computer chose slot: " + (move + 1));
+                break;
+            }
+        }
+    }
+
+
+    // Game loop
+    static void playGame(boolean vsComputer) {
+        resetBoard();
+        String winner = null;
+        System.out.println("Welcome to Tic Tac Toe!");
+        printBoard();
+
+        while (winner == null) {
+            System.out.println(turn + "'s turn; enter a slot number to place " + turn + " in:");
+            if (vsComputer && turn.equals("O")) {
+                computerMove();
+            } else {
+                playerMove();
+            }
+
+            printBoard();
+            winner = checkWinner();
+
+            if (winner == null) {
+                turn = turn.equals("X") ? "O" : "X";
+            }
+        }
+
+        // Final result
+        if (winner.equalsIgnoreCase("draw")) {
+            System.out.println("It's a draw!");
+            draws++;
+        } else {
+            System.out.println("Congratulations! " + winner + " has won!");
+            if (winner.equals("X")) xWins++;
+            else oWins++;
+        }
+
+        // Scoreboard
+        System.out.println("\nScoreboard:");
+        System.out.println("X Wins: " + xWins);
+        System.out.println("O Wins: " + oWins);
+        System.out.println("Draws : " + draws);
+    }
+
+    public static void main(String[] args) {
+        while (true) {
+            System.out.println("\nChoose Game Mode:");
+            System.out.println("1. Player vs Player");
+            System.out.println("2. Player vs Computer");
+            System.out.println("3. Exit");
+            int choice = in.nextInt();
+
+            if (choice == 1) playGame(false);
+            else if (choice == 2) playGame(true);
+            else {
+                System.out.println("Thanks for playing!");
+                break;
+            }
         }
         in.close();
     }
